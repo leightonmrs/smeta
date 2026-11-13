@@ -306,3 +306,101 @@ document.querySelector("#copy-whatsapp").addEventListener("click", async () => {
     field.select();
   }
 });
+
+const archiveKey = "smeta-archive-v1";
+
+function readArchive() {
+  const entries = JSON.parse(localStorage.getItem(archiveKey) || "[]");
+  if (!Array.isArray(entries) || !entries.every((entry) => {
+    const draft = entry && entry.draft;
+    return typeof entry?.id === "string" && typeof entry.total === "string" && draft &&
+      Array.isArray(draft.fields) && draft.fields.length === draftFields.length && draft.fields.every((value) => typeof value === "string") &&
+      ["₸", "₽", "$", "€"].includes(draft.fields[6]) && Array.isArray(draft.items) &&
+      draft.items.every((row) => Array.isArray(row) && row.length === 4 && row.every((value) => typeof value === "string") && ["шт", "час", "услуга"].includes(row[2]));
+  })) throw new Error("Неверный формат архива");
+  return entries;
+}
+
+function archiveError() {
+  document.querySelector("#archive-status").textContent = "Не удалось прочитать или сохранить архив в памяти браузера. Данные архива не заменены.";
+}
+
+function openArchivedEstimate(entry) {
+  if (!window.confirm("Открыть смету из архива? Текущий черновик будет заменён.")) return;
+  clearUndo();
+  clearCopyFeedback();
+  // Не сохраняем промежуточные строки во время восстановления.
+  draftReady = false;
+  try {
+    entry.draft.fields.forEach((value, index) => { document.querySelector(draftFields[index]).value = value; });
+    items.replaceChildren();
+    entry.draft.items.forEach((values) => {
+      const row = template.content.firstElementChild.cloneNode(true);
+      row.querySelectorAll("input, select").forEach((field, index) => { field.value = values[index]; });
+      items.append(row);
+    });
+    recalculate();
+  } finally {
+    draftReady = true;
+  }
+  saveDraft();
+  document.querySelector('[name="estimate-number"]').focus();
+  document.querySelector("#archive-status").textContent = "Смета открыта из архива.";
+}
+
+function renderArchive(entries) {
+  const list = document.querySelector("#archive-list");
+  list.replaceChildren();
+  document.querySelector("#archive-status").textContent = entries.length ? "" : "В архиве пока нет смет.";
+  for (const entry of entries) {
+    const item = document.createElement("li");
+    item.className = "archive-entry";
+    const details = document.createElement("p");
+    const [, recipient, number, date] = entry.draft.fields;
+    details.textContent = `Смета № ${number || "—"} от ${date ? date.split("-").reverse().join(".") : "—"}\nДля кого: ${recipient || "—"}\nИтого к оплате: ${entry.total}`;
+    const actions = document.createElement("div");
+    actions.className = "draft-actions";
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "add-button";
+    open.textContent = "Открыть";
+    open.addEventListener("click", () => openArchivedEstimate(entry));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "add-button";
+    remove.textContent = "Удалить";
+    remove.addEventListener("click", () => {
+      if (!window.confirm(`Удалить смету № ${number || "—"} из архива?`)) return;
+      try {
+        const remaining = readArchive().filter((saved) => saved.id !== entry.id);
+        localStorage.setItem(archiveKey, JSON.stringify(remaining));
+        renderArchive(remaining);
+        document.querySelector("#archive-status").textContent = "Смета удалена из архива.";
+        document.querySelector("#save-archive").focus();
+      } catch { archiveError(); }
+    });
+    actions.append(open, remove);
+    item.append(details, actions);
+    list.append(item);
+  }
+}
+
+document.querySelector("#save-archive").addEventListener("click", () => {
+  recalculate();
+  const entry = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    total: total.textContent,
+    draft: {
+      fields: draftFields.map((selector) => document.querySelector(selector).value),
+      items: Array.from(items.rows, (row) => Array.from(row.querySelectorAll("input, select"), (field) => field.value))
+    }
+  };
+  try {
+    const entries = [entry, ...readArchive()];
+    localStorage.setItem(archiveKey, JSON.stringify(entries));
+    renderArchive(entries);
+    document.querySelector("#archive-status").textContent = "Смета сохранена в архив.";
+  } catch { archiveError(); }
+});
+
+try { renderArchive(readArchive()); } catch { archiveError(); }

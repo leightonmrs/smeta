@@ -63,6 +63,7 @@
     <div class="draft-actions">
       <button type="button" id="copy-whatsapp" class="add-button">Скопировать для WhatsApp</button>
       <button type="button" id="new-estimate" class="add-button">Новая смета</button>
+      <button type="button" id="save-archive" class="add-button">Сохранить в архив</button>
     </div>
     <p id="copy-status" role="status" aria-live="polite"></p>
     <p id="storage-status" role="status"></p>
@@ -70,6 +71,11 @@
       <label for="copy-text">Скопируйте текст вручную</label>
       <textarea id="copy-text" rows="10" readonly></textarea>
     </div>
+    <section class="card archive" aria-labelledby="archive-title">
+      <h2 id="archive-title">Архив смет</h2>
+      <p id="archive-status" role="status"></p>
+      <ul id="archive-list"></ul>
+    </section>
   </main>
   <template id="item-template">
     <tr>
