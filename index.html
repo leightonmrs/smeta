@@ -31,6 +31,10 @@
         <thead><tr><th scope="col">Наименование</th><th scope="col">Количество</th><th scope="col">Единица</th><th scope="col" id="price-heading">Цена, ₸</th><th scope="col">Сумма</th><th scope="col"><span class="sr-only">Удаление</span></th></tr></thead>
         <tbody id="items"></tbody>
       </table>
+      <div id="undo-notice" class="undo-notice" hidden>
+        <span role="status">Позиция удалена</span>
+        <button type="button" id="undo-delete">Вернуть</button>
+      </div>
       <button type="button" id="add-item" class="add-button">+ Добавить позицию</button>
       <div class="adjustments">
         <label>Скидка, %<input id="discount" type="text" inputmode="decimal" value="0" autocomplete="off"></label>

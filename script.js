@@ -11,6 +11,8 @@ const draftKey = "smeta-draft-v1";
 const draftFields = ['[name="sender"]', '[name="recipient"]', '[name="estimate-number"]', '#estimate-date', '#discount', '#vat', '#currency', '#comment'];
 let draftReady = false;
 let validationId = 0;
+let deletedItem = null;
+let undoTimer;
 
 function numberError(value, percentage = false) {
   const normalized = value.trim().replace(/[\s\u00a0\u202f]/g, "").replace(",", ".");
@@ -104,11 +106,44 @@ items.addEventListener("click", (event) => {
   if (!button) return;
   const row = button.closest("tr");
   const neighbor = row.nextElementSibling || row.previousElementSibling;
+  rememberDeletedItem(row);
   row.remove();
   recalculate();
   saveDraft();
   if (neighbor) neighbor.querySelector(".item-name").focus();
   else document.querySelector("#add-item").focus();
+});
+
+function clearUndo() {
+  clearTimeout(undoTimer);
+  deletedItem = null;
+  const button = document.querySelector("#undo-delete");
+  if (document.activeElement === button) document.querySelector("#add-item").focus();
+  document.querySelector("#undo-notice").hidden = true;
+}
+
+function rememberDeletedItem(row) {
+  clearUndo();
+  deletedItem = {
+    row,
+    next: row.nextElementSibling,
+    previous: row.previousElementSibling,
+    index: Array.from(items.rows).indexOf(row)
+  };
+  document.querySelector("#undo-notice").hidden = false;
+  undoTimer = setTimeout(clearUndo, 5000);
+}
+
+document.querySelector("#undo-delete").addEventListener("click", () => {
+  if (!deletedItem) return;
+  const { row, next, previous, index } = deletedItem;
+  if (next && next.parentElement === items) items.insertBefore(row, next);
+  else if (previous && previous.parentElement === items) previous.after(row);
+  else items.insertBefore(row, items.rows[index] || null);
+  clearUndo();
+  recalculate();
+  saveDraft();
+  row.querySelector(".item-name").focus();
 });
 
 function duplicateItem(source) {
@@ -212,6 +247,7 @@ function clearCopyFeedback() {
 
 document.querySelector("#new-estimate").addEventListener("click", () => {
   if (!window.confirm("Создать новую смету? Текущий черновик будет очищен.")) return;
+  clearUndo();
   const numberField = document.querySelector('[name="estimate-number"]');
   const previous = numberField.value.trim();
   const match = previous.match(/^(.*?)(\d+)$/);
