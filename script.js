@@ -81,3 +81,26 @@ items.addEventListener("keydown", (event) => {
 const today = new Date();
 document.querySelector("#estimate-date").value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 addItem(false);
+
+function preparePrint() {
+  recalculate();
+  const number = document.querySelector('[name="estimate-number"]').value.trim() || "—";
+  const date = document.querySelector("#estimate-date").value;
+  const dateText = date ? date.split("-").reverse().join(".") : "—";
+  document.querySelector("#print-title").textContent = `Смета № ${number} от ${dateText}`;
+
+  // Текстовые копии не обрезают длинные значения, в отличие от полей ввода.
+  document.querySelectorAll(".print-value").forEach((value) => value.remove());
+  document.querySelectorAll(".details-grid input, #items input, #items select, #comment").forEach((field) => {
+    const value = document.createElement("span");
+    value.className = "print-value";
+    value.textContent = field.id === "estimate-date" ? dateText : field.value;
+    field.after(value);
+  });
+}
+
+window.addEventListener("beforeprint", preparePrint);
+document.querySelector("#save-pdf").addEventListener("click", () => {
+  preparePrint();
+  window.print();
+});

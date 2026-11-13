@@ -43,12 +43,49 @@ td { padding: 12px 6px; border-top: 1px solid #e8eeeb; }
 .total-card h2 { margin: 0; }
 #total { font-size: clamp(28px, 4vw, 38px); font-weight: 700; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
-@media (min-width: 641px) and (max-width: 850px) {
+.print-only, .print-value { display: none; }
+.comment-card { margin-top: 24px; }
+textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid #c9d5cf; border-radius: 8px; font: inherit; color: inherit; resize: vertical; }
+.pdf-button { background: var(--accent); color: white; }
+.pdf-button:hover { background: #11543f; }
+@media screen and (min-width: 641px) and (max-width: 850px) {
   .positions { padding: 20px 12px; }
   td, th { padding-left: 3px; padding-right: 3px; }
   input, select { padding-left: 8px; padding-right: 8px; }
 }
-@media (max-width: 640px) {
+
+@page { size: A4; margin: 15mm; }
+@media print {
+  :root, body { background: white; color: black; font-size: 10pt; }
+  .container { max-width: none; margin: 0; padding: 0; }
+  .page-header, button, .adjustments, .delete-cell, th:last-child,
+  input, select, textarea { display: none !important; }
+  .print-only, .print-value { display: block; }
+  #print-title { font-size: 20pt; margin: 0 0 8mm; letter-spacing: 0; overflow-wrap: anywhere; }
+  .card { padding: 0; margin: 0 0 6mm; border: 0; border-radius: 0; background: white; }
+  h2 { font-size: 12pt; margin: 0 0 3mm; }
+  .details-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3mm 8mm; }
+  label { font-size: 10pt; gap: 1mm; }
+  .print-value { font-weight: 400; white-space: pre-wrap; overflow-wrap: anywhere; }
+  table { display: table; width: 100%; border-collapse: collapse; }
+  thead { display: table-header-group; }
+  tbody { display: table-row-group; }
+  tr { display: table-row; break-inside: avoid; }
+  th, td { display: table-cell; padding: 2.5mm; border: 1px solid #555; color: black; vertical-align: top; }
+  td::before { display: none; }
+  th:first-child { width: 34%; }
+  th:nth-child(2), th:nth-child(3) { width: 14%; }
+  th:nth-child(4), th:nth-child(5) { width: 19%; }
+  .amount-cell { text-align: right; }
+  .breakdown { display: grid; gap: 2mm; width: 95mm; margin-left: auto; break-inside: avoid; }
+  .summary-row { gap: 4mm; }
+  .total-card { display: flex; flex-direction: row; align-items: center; width: 95mm; margin-left: auto; padding: 3mm 0; border-top: 1px solid black; border-radius: 0; background: white; color: black; break-inside: avoid; }
+  .total-card h2 { font-size: 12pt; }
+  #total { font-size: 16pt; text-align: right; }
+  .comment-card { margin-top: 6mm; }
+  .signature { margin-top: 8mm; color: black; break-inside: avoid; }
+}
+@media screen and (max-width: 640px) {
   .container { padding: 28px 16px; }
   .card { padding: 20px; }
   .details-grid { grid-template-columns: 1fr; }

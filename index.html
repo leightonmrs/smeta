@@ -13,6 +13,7 @@
       <h1>Смета за 5 минут</h1>
       <p>Добавьте позиции и цены — смета посчитает всё сама.</p>
     </header>
+    <h1 id="print-title" class="print-only"></h1>
 
     <section class="card" aria-labelledby="details-title">
       <h2 id="details-title">Реквизиты</h2>
@@ -48,6 +49,13 @@
       <h2 id="total-title">Итого к оплате</h2>
       <output id="total" aria-live="polite" aria-atomic="true">0 ₸</output>
     </section>
+    <section class="card comment-card" aria-labelledby="comment-title">
+      <h2 id="comment-title">Комментарий</h2>
+      <label for="comment" class="sr-only">Комментарий: сроки, условия оплаты</label>
+      <textarea id="comment" rows="4" placeholder="Сроки, условия оплаты"></textarea>
+    </section>
+    <p class="print-only signature">Подпись ____________________</p>
+    <button type="button" id="save-pdf" class="pdf-button">Сохранить PDF</button>
   </main>
   <template id="item-template">
     <tr>
