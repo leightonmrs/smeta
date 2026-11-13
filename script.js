@@ -3,7 +3,10 @@
 const items = document.querySelector("#items");
 const template = document.querySelector("#item-template");
 const total = document.querySelector("#total");
-const moneyFormatter = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 });
+const discountInput = document.querySelector("#discount");
+const vatInput = document.querySelector("#vat");
+const currency = document.querySelector("#currency");
+const moneyFormatter = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
 
 function parseNumber(value) {
   const normalized = value.trim().replace(/[\s\u00a0\u202f]/g, "").replace(",", ".");
@@ -13,28 +16,50 @@ function parseNumber(value) {
 }
 
 function formatMoney(value) {
-  return `${moneyFormatter.format(value).replace(/[\u00a0\u202f]/g, " ")} ₸`;
+  return `${moneyFormatter.format(value).replace(/[\u00a0\u202f]/g, " ")} ${currency.value}`;
+}
+
+function roundedAmount(value) {
+  return Number.isFinite(value) ? Math.round(value) : 0;
+}
+
+function showSummary(id, value, rowId) {
+  document.querySelector(id).textContent = formatMoney(value);
+  if (rowId) document.querySelector(rowId).hidden = value === 0;
 }
 
 function recalculate() {
   let sum = 0;
   for (const row of items.rows) {
     const product = parseNumber(row.querySelector(".quantity").value) * parseNumber(row.querySelector(".price").value);
-    const amount = Number.isFinite(product) ? Math.round(product * 100) / 100 : 0;
-    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    const safeAmount = roundedAmount(product);
     row.querySelector(".line-total").textContent = formatMoney(safeAmount);
+    row.querySelector(".price").setAttribute("aria-label", `Цена, ${currency.value}`);
+    row.querySelector(".price").closest("td").dataset.label = `Цена, ${currency.value}`;
     sum = Number.isFinite(sum + safeAmount) ? sum + safeAmount : sum;
   }
-  total.textContent = formatMoney(sum);
+  const discount = roundedAmount(sum * (Math.min(parseNumber(discountInput.value), 100) / 100));
+  const discounted = sum - discount;
+  const vat = roundedAmount(discounted * (parseNumber(vatInput.value) / 100));
+  showSummary("#subtotal", sum);
+  showSummary("#discount-amount", discount, "#discount-row");
+  showSummary("#discounted-amount", discounted, "#discounted-row");
+  showSummary("#vat-amount", vat, "#vat-row");
+  document.querySelector("#price-heading").textContent = `Цена, ${currency.value}`;
+  total.textContent = formatMoney(roundedAmount(discounted + vat));
 }
 
 function addItem(focus = true) {
   const row = template.content.firstElementChild.cloneNode(true);
   items.append(row);
+  recalculate();
   if (focus) row.querySelector(".item-name").focus();
 }
 
 document.querySelector("#add-item").addEventListener("click", () => addItem());
+discountInput.addEventListener("input", recalculate);
+vatInput.addEventListener("input", recalculate);
+currency.addEventListener("change", recalculate);
 items.addEventListener("input", recalculate);
 items.addEventListener("click", (event) => {
   const button = event.target.closest(".delete-button");
