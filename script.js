@@ -10,6 +10,34 @@ const moneyFormatter = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0
 const draftKey = "smeta-draft-v1";
 const draftFields = ['[name="sender"]', '[name="recipient"]', '[name="estimate-number"]', '#estimate-date', '#discount', '#vat', '#currency', '#comment'];
 let draftReady = false;
+let validationId = 0;
+
+function numberError(value, percentage = false) {
+  const normalized = value.trim().replace(/[\s\u00a0\u202f]/g, "").replace(",", ".");
+  if (!normalized) return "";
+  if (!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized) || !Number.isFinite(Number(normalized))) return "Введите корректное число";
+  const number = Number(normalized);
+  if (percentage && (number < 0 || number > 100)) return "Введите процент от 0 до 100";
+  if (number < 0) return "Введите число не меньше 0";
+  return "";
+}
+
+function validatedNumber(field, percentage = false) {
+  const error = numberError(field.value, percentage);
+  let hint = field.nextElementSibling;
+  if (!hint || !hint.classList.contains("field-error")) {
+    hint = document.createElement("span");
+    hint.className = "field-error";
+    hint.id = `field-error-${++validationId}`;
+    hint.setAttribute("aria-live", "polite");
+    field.after(hint);
+    field.setAttribute("aria-describedby", hint.id);
+  }
+  hint.textContent = error;
+  hint.hidden = !error;
+  field.setAttribute("aria-invalid", String(Boolean(error)));
+  return error ? 0 : parseNumber(field.value);
+}
 
 function parseNumber(value) {
   const normalized = value.trim().replace(/[\s\u00a0\u202f]/g, "").replace(",", ".");
@@ -34,16 +62,16 @@ function showSummary(id, value, rowId) {
 function recalculate() {
   let sum = 0;
   for (const row of items.rows) {
-    const product = parseNumber(row.querySelector(".quantity").value) * parseNumber(row.querySelector(".price").value);
+    const product = validatedNumber(row.querySelector(".quantity")) * validatedNumber(row.querySelector(".price"));
     const safeAmount = roundedAmount(product);
     row.querySelector(".line-total").textContent = formatMoney(safeAmount);
     row.querySelector(".price").setAttribute("aria-label", `Цена, ${currency.value}`);
     row.querySelector(".price").closest("td").dataset.label = `Цена, ${currency.value}`;
     sum = Number.isFinite(sum + safeAmount) ? sum + safeAmount : sum;
   }
-  const discount = roundedAmount(sum * (Math.min(parseNumber(discountInput.value), 100) / 100));
+  const discount = roundedAmount(sum * (validatedNumber(discountInput, true) / 100));
   const discounted = sum - discount;
-  const vat = roundedAmount(discounted * (parseNumber(vatInput.value) / 100));
+  const vat = roundedAmount(discounted * (validatedNumber(vatInput, true) / 100));
   showSummary("#subtotal", sum);
   showSummary("#discount-amount", discount, "#discount-row");
   showSummary("#discounted-amount", discounted, "#discounted-row");
