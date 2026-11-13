@@ -76,6 +76,15 @@
       <p id="archive-status" role="status"></p>
       <ul id="archive-list"></ul>
     </section>
+    <section class="card backup" aria-labelledby="backup-title">
+      <h2 id="backup-title">Резервная копия</h2>
+      <div class="draft-actions">
+        <button type="button" id="download-backup" class="add-button">Скачать резервную копию</button>
+        <button type="button" id="upload-backup" class="add-button">Загрузить резервную копию</button>
+      </div>
+      <input type="file" id="backup-file" accept=".json,application/json" hidden>
+      <p id="backup-status" role="status" aria-live="polite"></p>
+    </section>
   </main>
   <template id="item-template">
     <tr>

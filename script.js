@@ -404,3 +404,103 @@ document.querySelector("#save-archive").addEventListener("click", () => {
 });
 
 try { renderArchive(readArchive()); } catch { archiveError(); }
+
+function validBackupDraft(draft) {
+  if (!draft || !Array.isArray(draft.fields) || draft.fields.length !== draftFields.length ||
+      !draft.fields.every((value) => typeof value === "string") || !["₸", "₽", "$", "€"].includes(draft.fields[6]) ||
+      !Array.isArray(draft.items) || !draft.items.every((row) => Array.isArray(row) && row.length === 4 &&
+        row.every((value) => typeof value === "string") && ["шт", "час", "услуга"].includes(row[2]))) return false;
+  const date = draft.fields[3];
+  if (!date) return true;
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
+}
+
+function validateBackup(data) {
+  if (!data || data.version !== 1 || !validBackupDraft(data.draft) || !Array.isArray(data.archive) ||
+      !data.archive.every((entry) => entry && typeof entry.id === "string" && entry.id.length > 0 &&
+        typeof entry.total === "string" && validBackupDraft(entry.draft)) ||
+      new Set(data.archive.map((entry) => entry.id)).size !== data.archive.length) {
+    throw new Error("Неверный файл резервной копии или неподдерживаемая версия. Данные не изменены.");
+  }
+  return data;
+}
+
+document.querySelector("#download-backup").addEventListener("click", () => {
+  const status = document.querySelector("#backup-status");
+  try {
+    const data = validateBackup({
+      version: 1,
+      draft: {
+        fields: draftFields.map((selector) => document.querySelector(selector).value),
+        items: Array.from(items.rows, (row) => Array.from(row.querySelectorAll("input, select"), (field) => field.value))
+      },
+      archive: readArchive()
+    });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `smeta-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status.textContent = "Резервная копия подготовлена к скачиванию.";
+  } catch {
+    status.textContent = "Не удалось создать резервную копию. Проверьте доступность и данные архива.";
+  }
+});
+
+document.querySelector("#upload-backup").addEventListener("click", () => {
+  document.querySelector("#backup-file").click();
+});
+
+function storeBackup(data) {
+  const oldDraft = localStorage.getItem(draftKey);
+  const oldArchive = localStorage.getItem(archiveKey);
+  try {
+    localStorage.setItem(draftKey, JSON.stringify(data.draft));
+    localStorage.setItem(archiveKey, JSON.stringify(data.archive));
+  } catch {
+    try {
+      for (const [key, value] of [[draftKey, oldDraft], [archiveKey, oldArchive]]) {
+        if (localStorage.getItem(key) === value) continue;
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      }
+    } catch {
+      throw new Error("Ошибка памяти браузера при восстановлении прежних данных. Текущая смета осталась на экране; скачайте резервную копию перед обновлением страницы.");
+    }
+    throw new Error("Не удалось сохранить резервную копию в браузере. Прежние данные сохранены.");
+  }
+}
+
+document.querySelector("#backup-file").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const status = document.querySelector("#backup-status");
+  try {
+    let data;
+    try { data = JSON.parse(await file.text()); }
+    catch { throw new Error("Не удалось прочитать JSON-файл. Данные не изменены."); }
+    validateBackup(data);
+    if (!window.confirm("Загрузить резервную копию? Текущий черновик и весь архив будут заменены.")) {
+      status.textContent = "Загрузка отменена. Данные не изменены.";
+      return;
+    }
+    storeBackup(data);
+    clearUndo();
+    clearCopyFeedback();
+    draftReady = false;
+    try { restoreDraft(); } finally { draftReady = true; }
+    recalculate();
+    renderArchive(data.archive);
+    document.querySelector("#storage-status").textContent = "";
+    status.textContent = "Резервная копия загружена. Черновик и архив восстановлены.";
+  } catch (error) {
+    status.textContent = error.message;
+  } finally {
+    event.target.value = "";
+  }
+});
