@@ -56,6 +56,16 @@
     </section>
     <p class="print-only signature">Подпись ____________________</p>
     <button type="button" id="save-pdf" class="pdf-button">Сохранить PDF</button>
+    <div class="draft-actions">
+      <button type="button" id="copy-whatsapp" class="add-button">Скопировать для WhatsApp</button>
+      <button type="button" id="new-estimate" class="add-button">Новая смета</button>
+    </div>
+    <p id="copy-status" role="status" aria-live="polite"></p>
+    <p id="storage-status" role="status"></p>
+    <div id="manual-copy" hidden>
+      <label for="copy-text">Скопируйте текст вручную</label>
+      <textarea id="copy-text" rows="10" readonly></textarea>
+    </div>
   </main>
   <template id="item-template">
     <tr>

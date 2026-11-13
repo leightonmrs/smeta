@@ -48,6 +48,10 @@ td { padding: 12px 6px; border-top: 1px solid #e8eeeb; }
 textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid #c9d5cf; border-radius: 8px; font: inherit; color: inherit; resize: vertical; }
 .pdf-button { background: var(--accent); color: white; }
 .pdf-button:hover { background: #11543f; }
+.draft-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.draft-actions .add-button { margin-top: 0; }
+#copy-status, #storage-status { margin-top: 12px; }
+#manual-copy { margin-top: 16px; }
 @media screen and (min-width: 641px) and (max-width: 850px) {
   .positions { padding: 20px 12px; }
   td, th { padding-left: 3px; padding-right: 3px; }
@@ -59,6 +63,7 @@ textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid #c9d
   :root, body { background: white; color: black; font-size: 10pt; }
   .container { max-width: none; margin: 0; padding: 0; }
   .page-header, button, .adjustments, .delete-cell, th:last-child,
+  .draft-actions, #copy-status, #storage-status, #manual-copy,
   input, select, textarea { display: none !important; }
   .print-only, .print-value { display: block; }
   #print-title { font-size: 20pt; margin: 0 0 8mm; letter-spacing: 0; overflow-wrap: anywhere; }

@@ -7,6 +7,9 @@ const discountInput = document.querySelector("#discount");
 const vatInput = document.querySelector("#vat");
 const currency = document.querySelector("#currency");
 const moneyFormatter = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
+const draftKey = "smeta-draft-v1";
+const draftFields = ['[name="sender"]', '[name="recipient"]', '[name="estimate-number"]', '#estimate-date', '#discount', '#vat', '#currency', '#comment'];
+let draftReady = false;
 
 function parseNumber(value) {
   const normalized = value.trim().replace(/[\s\u00a0\u202f]/g, "").replace(",", ".");
@@ -53,7 +56,9 @@ function addItem(focus = true) {
   const row = template.content.firstElementChild.cloneNode(true);
   items.append(row);
   recalculate();
+  saveDraft();
   if (focus) row.querySelector(".item-name").focus();
+  return row;
 }
 
 document.querySelector("#add-item").addEventListener("click", () => addItem());
@@ -68,6 +73,7 @@ items.addEventListener("click", (event) => {
   const neighbor = row.nextElementSibling || row.previousElementSibling;
   row.remove();
   recalculate();
+  saveDraft();
   if (neighbor) neighbor.querySelector(".item-name").focus();
   else document.querySelector("#add-item").focus();
 });
@@ -103,4 +109,116 @@ window.addEventListener("beforeprint", preparePrint);
 document.querySelector("#save-pdf").addEventListener("click", () => {
   preparePrint();
   window.print();
+});
+
+function saveDraft() {
+  if (!draftReady) return;
+  const draft = {
+    fields: draftFields.map((selector) => document.querySelector(selector).value),
+    items: Array.from(items.rows, (row) => Array.from(row.querySelectorAll("input, select"), (field) => field.value))
+  };
+  try {
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+    document.querySelector("#storage-status").textContent = "";
+  } catch {
+    document.querySelector("#storage-status").textContent = "Браузер не разрешает сохранить черновик. Не закрывайте страницу, пока не сохраните смету.";
+  }
+}
+
+function restoreDraft() {
+  try {
+    const saved = localStorage.getItem(draftKey);
+    if (!saved) return;
+    const draft = JSON.parse(saved);
+    if (!Array.isArray(draft.fields) || draft.fields.length !== draftFields.length || !draft.fields.every((value) => typeof value === "string") ||
+        !Array.isArray(draft.items) || !draft.items.every((row) => Array.isArray(row) && row.length === 4 && row.every((value) => typeof value === "string")) ||
+        !["₸", "₽", "$", "€"].includes(draft.fields[6]) || !draft.items.every((row) => ["шт", "час", "услуга"].includes(row[2]))) return;
+    draftFields.forEach((selector, index) => { document.querySelector(selector).value = draft.fields[index]; });
+    items.replaceChildren();
+    draft.items.forEach((values) => {
+      const row = addItem(false);
+      row.querySelectorAll("input, select").forEach((field, index) => { field.value = values[index]; });
+    });
+    recalculate();
+  } catch {
+    document.querySelector("#storage-status").textContent = "Не удалось восстановить черновик из памяти браузера.";
+  }
+}
+
+restoreDraft();
+draftReady = true;
+document.querySelector("main").addEventListener("input", (event) => {
+  if (event.target.matches("input, select, #comment")) saveDraft();
+});
+document.querySelector("main").addEventListener("change", (event) => {
+  if (event.target.matches("input, select, #comment")) saveDraft();
+});
+
+let copyTimer;
+function clearCopyFeedback() {
+  clearTimeout(copyTimer);
+  document.querySelector("#copy-status").textContent = "";
+  document.querySelector("#manual-copy").hidden = true;
+  document.querySelector("#copy-text").value = "";
+}
+
+document.querySelector("#new-estimate").addEventListener("click", () => {
+  if (!window.confirm("Создать новую смету? Текущий черновик будет очищен.")) return;
+  const numberField = document.querySelector('[name="estimate-number"]');
+  const previous = numberField.value.trim();
+  const match = previous.match(/^(.*?)(\d+)$/);
+  const next = match ? match[1] + String(BigInt(match[2]) + 1n).padStart(match[2].length, "0") : "1";
+  draftFields.forEach((selector) => { document.querySelector(selector).value = ""; });
+  numberField.value = next;
+  const now = new Date();
+  document.querySelector("#estimate-date").value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  discountInput.value = "0";
+  vatInput.value = "0";
+  currency.value = "₸";
+  items.replaceChildren();
+  clearCopyFeedback();
+  addItem();
+});
+
+function whatsappText() {
+  recalculate();
+  const number = document.querySelector('[name="estimate-number"]').value.trim() || "—";
+  const date = document.querySelector("#estimate-date").value;
+  const lines = [`Смета № ${number} от ${date ? date.split("-").reverse().join(".") : "—"}`];
+  for (const selector of ['[name="sender"]', '[name="recipient"]']) {
+    const value = document.querySelector(selector).value.trim();
+    if (value) lines.push(`${selector.includes("sender") ? "От кого" : "Для кого"}: ${value}`);
+  }
+  lines.push("");
+  for (const row of items.rows) {
+    const name = row.querySelector(".item-name").value.trim() || "Без наименования";
+    const quantity = parseNumber(row.querySelector(".quantity").value).toLocaleString("ru-RU", { maximumFractionDigits: 20 }).replace(/[\u00a0\u202f]/g, " ");
+    const unit = row.querySelector("select").value;
+    const price = formatMoney(parseNumber(row.querySelector(".price").value));
+    lines.push(`• ${name} — ${quantity} ${unit} × ${price} = ${row.querySelector(".line-total").textContent}`);
+  }
+  lines.push("", `Сумма: ${document.querySelector("#subtotal").textContent}`);
+  for (const [row, label, amount] of [["#discount-row", "Скидка", "#discount-amount"], ["#discounted-row", "Сумма со скидкой", "#discounted-amount"], ["#vat-row", "НДС", "#vat-amount"]]) {
+    if (!document.querySelector(row).hidden) lines.push(`${label}: ${document.querySelector(amount).textContent}`);
+  }
+  lines.push(`Итого к оплате: ${total.textContent}`);
+  const comment = document.querySelector("#comment").value.trim();
+  if (comment) lines.push("", comment);
+  return lines.join("\n");
+}
+
+document.querySelector("#copy-whatsapp").addEventListener("click", async () => {
+  clearCopyFeedback();
+  const text = whatsappText();
+  try {
+    await navigator.clipboard.writeText(text);
+    document.querySelector("#copy-status").textContent = "Скопировано ✓";
+    copyTimer = setTimeout(() => { document.querySelector("#copy-status").textContent = ""; }, 2000);
+  } catch {
+    document.querySelector("#manual-copy").hidden = false;
+    const field = document.querySelector("#copy-text");
+    field.value = text;
+    field.focus();
+    field.select();
+  }
 });
