@@ -17,10 +17,10 @@ let undoTimer;
 function numberError(value, percentage = false) {
   const normalized = value.trim().replace(/[\s\u00a0\u202f]/g, "").replace(",", ".");
   if (!normalized) return "";
-  if (!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized) || !Number.isFinite(Number(normalized))) return "Введите корректное число";
+  if (!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized) || !Number.isFinite(Number(normalized))) return t("Введите корректное число");
   const number = Number(normalized);
-  if (percentage && (number < 0 || number > 100)) return "Введите процент от 0 до 100";
-  if (number < 0) return "Введите число не меньше 0";
+  if (percentage && (number < 0 || number > 100)) return t("Введите процент от 0 до 100");
+  if (number < 0) return t("Введите число не меньше 0");
   return "";
 }
 
@@ -67,8 +67,8 @@ function recalculate() {
     const product = validatedNumber(row.querySelector(".quantity")) * validatedNumber(row.querySelector(".price"));
     const safeAmount = roundedAmount(product);
     row.querySelector(".line-total").textContent = formatMoney(safeAmount);
-    row.querySelector(".price").setAttribute("aria-label", `Цена, ${currency.value}`);
-    row.querySelector(".price").closest("td").dataset.label = `Цена, ${currency.value}`;
+    row.querySelector(".price").setAttribute("aria-label", `${t("Цена")}, ${currency.value}`);
+    row.querySelector(".price").closest("td").dataset.label = `${t("Цена")}, ${currency.value}`;
     sum = Number.isFinite(sum + safeAmount) ? sum + safeAmount : sum;
   }
   const discount = roundedAmount(sum * (validatedNumber(discountInput, true) / 100));
@@ -78,8 +78,9 @@ function recalculate() {
   showSummary("#discount-amount", discount, "#discount-row");
   showSummary("#discounted-amount", discounted, "#discounted-row");
   showSummary("#vat-amount", vat, "#vat-row");
-  document.querySelector("#price-heading").textContent = `Цена, ${currency.value}`;
+  document.querySelector("#price-heading").textContent = `${t("Цена")}, ${currency.value}`;
   total.textContent = formatMoney(roundedAmount(discounted + vat));
+  translateTree(items);
 }
 
 function addItem(focus = true) {
@@ -175,15 +176,15 @@ function preparePrint() {
   recalculate();
   const number = document.querySelector('[name="estimate-number"]').value.trim() || "—";
   const date = document.querySelector("#estimate-date").value;
-  const dateText = date ? date.split("-").reverse().join(".") : "—";
-  document.querySelector("#print-title").textContent = `Смета № ${number} от ${dateText}`;
+  const dateText = localizedDate(date);
+  document.querySelector("#print-title").textContent = estimateHeading(number, date);
 
   // Текстовые копии не обрезают длинные значения, в отличие от полей ввода.
   document.querySelectorAll(".print-value").forEach((value) => value.remove());
   document.querySelectorAll(".details-grid input, #items input, #items select, #comment").forEach((field) => {
     const value = document.createElement("span");
     value.className = "print-value";
-    value.textContent = field.id === "estimate-date" ? dateText : field.value;
+    value.textContent = field.id === "estimate-date" ? dateText : field.tagName === "SELECT" ? t(field.value) : field.value;
     field.after(value);
   });
 }
@@ -197,6 +198,7 @@ document.querySelector("#save-pdf").addEventListener("click", () => {
 function saveDraft() {
   if (!draftReady) return;
   const draft = {
+    language: currentLanguage,
     fields: draftFields.map((selector) => document.querySelector(selector).value),
     items: Array.from(items.rows, (row) => Array.from(row.querySelectorAll("input, select"), (field) => field.value))
   };
@@ -204,7 +206,7 @@ function saveDraft() {
     localStorage.setItem(draftKey, JSON.stringify(draft));
     document.querySelector("#storage-status").textContent = "";
   } catch {
-    document.querySelector("#storage-status").textContent = "Браузер не разрешает сохранить черновик. Не закрывайте страницу, пока не сохраните смету.";
+    document.querySelector("#storage-status").textContent = t("Браузер не разрешает сохранить черновик. Не закрывайте страницу, пока не сохраните смету.");
   }
 }
 
@@ -213,9 +215,10 @@ function restoreDraft() {
     const saved = localStorage.getItem(draftKey);
     if (!saved) return;
     const draft = JSON.parse(saved);
-    if (!Array.isArray(draft.fields) || draft.fields.length !== draftFields.length || !draft.fields.every((value) => typeof value === "string") ||
+    if (!validLanguage(draft.language) || !Array.isArray(draft.fields) || draft.fields.length !== draftFields.length || !draft.fields.every((value) => typeof value === "string") ||
         !Array.isArray(draft.items) || !draft.items.every((row) => Array.isArray(row) && row.length === 4 && row.every((value) => typeof value === "string")) ||
         !["₸", "₽", "$", "€"].includes(draft.fields[6]) || !draft.items.every((row) => ["шт", "час", "услуга"].includes(row[2]))) return;
+    setLanguage(draft.language);
     draftFields.forEach((selector, index) => { document.querySelector(selector).value = draft.fields[index]; });
     items.replaceChildren();
     draft.items.forEach((values) => {
@@ -224,7 +227,7 @@ function restoreDraft() {
     });
     recalculate();
   } catch {
-    document.querySelector("#storage-status").textContent = "Не удалось восстановить черновик из памяти браузера.";
+    document.querySelector("#storage-status").textContent = t("Не удалось восстановить черновик из памяти браузера.");
   }
 }
 
@@ -246,7 +249,7 @@ function clearCopyFeedback() {
 }
 
 document.querySelector("#new-estimate").addEventListener("click", () => {
-  if (!window.confirm("Создать новую смету? Текущий черновик будет очищен.")) return;
+  if (!window.confirm(t("Создать новую смету? Текущий черновик будет очищен."))) return;
   clearUndo();
   const numberField = document.querySelector('[name="estimate-number"]');
   const previous = numberField.value.trim();
@@ -268,24 +271,24 @@ function whatsappText() {
   recalculate();
   const number = document.querySelector('[name="estimate-number"]').value.trim() || "—";
   const date = document.querySelector("#estimate-date").value;
-  const lines = [`Смета № ${number} от ${date ? date.split("-").reverse().join(".") : "—"}`];
+  const lines = [estimateHeading(number, date)];
   for (const selector of ['[name="sender"]', '[name="recipient"]']) {
     const value = document.querySelector(selector).value.trim();
-    if (value) lines.push(`${selector.includes("sender") ? "От кого" : "Для кого"}: ${value}`);
+    if (value) lines.push(`${selector.includes("sender") ? t("От кого") : t("Для кого")}: ${value}`);
   }
   lines.push("");
   for (const row of items.rows) {
-    const name = row.querySelector(".item-name").value.trim() || "Без наименования";
-    const quantity = parseNumber(row.querySelector(".quantity").value).toLocaleString("ru-RU", { maximumFractionDigits: 20 }).replace(/[\u00a0\u202f]/g, " ");
-    const unit = row.querySelector("select").value;
+    const name = row.querySelector(".item-name").value.trim() || t("Без наименования");
+    const quantity = parseNumber(row.querySelector(".quantity").value).toLocaleString(locale(), { maximumFractionDigits: 20 }).replace(/[\u00a0\u202f]/g, " ");
+    const unit = t(row.querySelector("select").value);
     const price = formatMoney(parseNumber(row.querySelector(".price").value));
     lines.push(`• ${name} — ${quantity} ${unit} × ${price} = ${row.querySelector(".line-total").textContent}`);
   }
-  lines.push("", `Сумма: ${document.querySelector("#subtotal").textContent}`);
-  for (const [row, label, amount] of [["#discount-row", "Скидка", "#discount-amount"], ["#discounted-row", "Сумма со скидкой", "#discounted-amount"], ["#vat-row", "НДС", "#vat-amount"]]) {
+  lines.push("", `${t("Сумма")}: ${document.querySelector("#subtotal").textContent}`);
+  for (const [row, label, amount] of [["#discount-row", t("Скидка"), "#discount-amount"], ["#discounted-row", t("Сумма со скидкой"), "#discounted-amount"], ["#vat-row", t("НДС"), "#vat-amount"]]) {
     if (!document.querySelector(row).hidden) lines.push(`${label}: ${document.querySelector(amount).textContent}`);
   }
-  lines.push(`Итого к оплате: ${total.textContent}`);
+  lines.push(`${t("Итого к оплате")}: ${total.textContent}`);
   const comment = document.querySelector("#comment").value.trim();
   if (comment) lines.push("", comment);
   return lines.join("\n");
@@ -296,7 +299,7 @@ document.querySelector("#copy-whatsapp").addEventListener("click", async () => {
   const text = whatsappText();
   try {
     await navigator.clipboard.writeText(text);
-    document.querySelector("#copy-status").textContent = "Скопировано ✓";
+    document.querySelector("#copy-status").textContent = t("Скопировано ✓");
     copyTimer = setTimeout(() => { document.querySelector("#copy-status").textContent = ""; }, 2000);
   } catch {
     document.querySelector("#manual-copy").hidden = false;
@@ -313,25 +316,26 @@ function readArchive() {
   const entries = JSON.parse(localStorage.getItem(archiveKey) || "[]");
   if (!Array.isArray(entries) || !entries.every((entry) => {
     const draft = entry && entry.draft;
-    return typeof entry?.id === "string" && typeof entry.total === "string" && draft &&
+    return typeof entry?.id === "string" && typeof entry.total === "string" && draft && validLanguage(draft.language) &&
       Array.isArray(draft.fields) && draft.fields.length === draftFields.length && draft.fields.every((value) => typeof value === "string") &&
       ["₸", "₽", "$", "€"].includes(draft.fields[6]) && Array.isArray(draft.items) &&
       draft.items.every((row) => Array.isArray(row) && row.length === 4 && row.every((value) => typeof value === "string") && ["шт", "час", "услуга"].includes(row[2]));
-  })) throw new Error("Неверный формат архива");
+  })) throw new Error(t("Неверный формат архива"));
   return entries;
 }
 
 function archiveError() {
-  document.querySelector("#archive-status").textContent = "Не удалось прочитать или сохранить архив в памяти браузера. Данные архива не заменены.";
+  document.querySelector("#archive-status").textContent = t("Не удалось прочитать или сохранить архив в памяти браузера. Данные архива не заменены.");
 }
 
 function openArchivedEstimate(entry) {
-  if (!window.confirm("Открыть смету из архива? Текущий черновик будет заменён.")) return;
+  if (!window.confirm(t("Открыть смету из архива? Текущий черновик будет заменён."))) return;
   clearUndo();
   clearCopyFeedback();
   // Не сохраняем промежуточные строки во время восстановления.
   draftReady = false;
   try {
+    setLanguage(entry.draft.language);
     entry.draft.fields.forEach((value, index) => { document.querySelector(draftFields[index]).value = value; });
     items.replaceChildren();
     entry.draft.items.forEach((values) => {
@@ -344,38 +348,39 @@ function openArchivedEstimate(entry) {
     draftReady = true;
   }
   saveDraft();
+  try { renderArchive(readArchive()); } catch { archiveError(); }
   document.querySelector('[name="estimate-number"]').focus();
-  document.querySelector("#archive-status").textContent = "Смета открыта из архива.";
+  document.querySelector("#archive-status").textContent = t("Смета открыта из архива.");
 }
 
 function renderArchive(entries) {
   const list = document.querySelector("#archive-list");
   list.replaceChildren();
-  document.querySelector("#archive-status").textContent = entries.length ? "" : "В архиве пока нет смет.";
+  document.querySelector("#archive-status").textContent = entries.length ? "" : t("В архиве пока нет смет.");
   for (const entry of entries) {
     const item = document.createElement("li");
     item.className = "archive-entry";
     const details = document.createElement("p");
     const [, recipient, number, date] = entry.draft.fields;
-    details.textContent = `Смета № ${number || "—"} от ${date ? date.split("-").reverse().join(".") : "—"}\nДля кого: ${recipient || "—"}\nИтого к оплате: ${entry.total}`;
+    details.textContent = `${estimateHeading(number, date)}\n${t("Для кого")}: ${recipient || "—"}\n${t("Итого к оплате")}: ${entry.total}`;
     const actions = document.createElement("div");
     actions.className = "draft-actions";
     const open = document.createElement("button");
     open.type = "button";
     open.className = "add-button";
-    open.textContent = "Открыть";
+    open.textContent = t("Открыть");
     open.addEventListener("click", () => openArchivedEstimate(entry));
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "add-button";
-    remove.textContent = "Удалить";
+    remove.textContent = t("Удалить");
     remove.addEventListener("click", () => {
-      if (!window.confirm(`Удалить смету № ${number || "—"} из архива?`)) return;
+      if (!window.confirm(deleteArchiveQuestion(number || "—"))) return;
       try {
         const remaining = readArchive().filter((saved) => saved.id !== entry.id);
         localStorage.setItem(archiveKey, JSON.stringify(remaining));
         renderArchive(remaining);
-        document.querySelector("#archive-status").textContent = "Смета удалена из архива.";
+        document.querySelector("#archive-status").textContent = t("Смета удалена из архива.");
         document.querySelector("#save-archive").focus();
       } catch { archiveError(); }
     });
@@ -391,6 +396,7 @@ document.querySelector("#save-archive").addEventListener("click", () => {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     total: total.textContent,
     draft: {
+      language: currentLanguage,
       fields: draftFields.map((selector) => document.querySelector(selector).value),
       items: Array.from(items.rows, (row) => Array.from(row.querySelectorAll("input, select"), (field) => field.value))
     }
@@ -399,14 +405,14 @@ document.querySelector("#save-archive").addEventListener("click", () => {
     const entries = [entry, ...readArchive()];
     localStorage.setItem(archiveKey, JSON.stringify(entries));
     renderArchive(entries);
-    document.querySelector("#archive-status").textContent = "Смета сохранена в архив.";
+    document.querySelector("#archive-status").textContent = t("Смета сохранена в архив.");
   } catch { archiveError(); }
 });
 
 try { renderArchive(readArchive()); } catch { archiveError(); }
 
 function validBackupDraft(draft) {
-  if (!draft || !Array.isArray(draft.fields) || draft.fields.length !== draftFields.length ||
+  if (!draft || !validLanguage(draft.language) || !Array.isArray(draft.fields) || draft.fields.length !== draftFields.length ||
       !draft.fields.every((value) => typeof value === "string") || !["₸", "₽", "$", "€"].includes(draft.fields[6]) ||
       !Array.isArray(draft.items) || !draft.items.every((row) => Array.isArray(row) && row.length === 4 &&
         row.every((value) => typeof value === "string") && ["шт", "час", "услуга"].includes(row[2]))) return false;
@@ -421,7 +427,7 @@ function validateBackup(data) {
       !data.archive.every((entry) => entry && typeof entry.id === "string" && entry.id.length > 0 &&
         typeof entry.total === "string" && validBackupDraft(entry.draft)) ||
       new Set(data.archive.map((entry) => entry.id)).size !== data.archive.length) {
-    throw new Error("Неверный файл резервной копии или неподдерживаемая версия. Данные не изменены.");
+    throw new Error(t("Неверный файл резервной копии или неподдерживаемая версия. Данные не изменены."));
   }
   return data;
 }
@@ -432,7 +438,8 @@ document.querySelector("#download-backup").addEventListener("click", () => {
     const data = validateBackup({
       version: 1,
       draft: {
-        fields: draftFields.map((selector) => document.querySelector(selector).value),
+        language: currentLanguage,
+      fields: draftFields.map((selector) => document.querySelector(selector).value),
         items: Array.from(items.rows, (row) => Array.from(row.querySelectorAll("input, select"), (field) => field.value))
       },
       archive: readArchive()
@@ -446,9 +453,9 @@ document.querySelector("#download-backup").addEventListener("click", () => {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    status.textContent = "Резервная копия подготовлена к скачиванию.";
+    status.textContent = t("Резервная копия подготовлена к скачиванию.");
   } catch {
-    status.textContent = "Не удалось создать резервную копию. Проверьте доступность и данные архива.";
+    status.textContent = t("Не удалось создать резервную копию. Проверьте доступность и данные архива.");
   }
 });
 
@@ -470,9 +477,9 @@ function storeBackup(data) {
         else localStorage.setItem(key, value);
       }
     } catch {
-      throw new Error("Ошибка памяти браузера при восстановлении прежних данных. Текущая смета осталась на экране; скачайте резервную копию перед обновлением страницы.");
+      throw new Error(t("Ошибка памяти браузера при восстановлении прежних данных. Текущая смета осталась на экране; скачайте резервную копию перед обновлением страницы."));
     }
-    throw new Error("Не удалось сохранить резервную копию в браузере. Прежние данные сохранены.");
+    throw new Error(t("Не удалось сохранить резервную копию в браузере. Прежние данные сохранены."));
   }
 }
 
@@ -483,10 +490,10 @@ document.querySelector("#backup-file").addEventListener("change", async (event) 
   try {
     let data;
     try { data = JSON.parse(await file.text()); }
-    catch { throw new Error("Не удалось прочитать JSON-файл. Данные не изменены."); }
+    catch { throw new Error(t("Не удалось прочитать JSON-файл. Данные не изменены.")); }
     validateBackup(data);
-    if (!window.confirm("Загрузить резервную копию? Текущий черновик и весь архив будут заменены.")) {
-      status.textContent = "Загрузка отменена. Данные не изменены.";
+    if (!window.confirm(t("Загрузить резервную копию? Текущий черновик и весь архив будут заменены."))) {
+      status.textContent = t("Загрузка отменена. Данные не изменены.");
       return;
     }
     storeBackup(data);
@@ -497,10 +504,21 @@ document.querySelector("#backup-file").addEventListener("change", async (event) 
     recalculate();
     renderArchive(data.archive);
     document.querySelector("#storage-status").textContent = "";
-    status.textContent = "Резервная копия загружена. Черновик и архив восстановлены.";
+    status.textContent = t("Резервная копия загружена. Черновик и архив восстановлены.");
   } catch (error) {
     status.textContent = error.message;
   } finally {
     event.target.value = "";
   }
 });
+
+function refreshLanguage() {
+  setLanguage(document.querySelector("#language").value);
+  recalculate();
+  try { renderArchive(readArchive()); } catch { archiveError(); }
+  if (!document.querySelector("#manual-copy").hidden) document.querySelector("#copy-text").value = whatsappText();
+  saveDraft();
+}
+document.querySelector("#language").addEventListener("change", refreshLanguage);
+setLanguage(currentLanguage);
+recalculate();

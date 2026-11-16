@@ -78,7 +78,7 @@ textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid #c9d
   .container { max-width: none; margin: 0; padding: 0; }
   .page-header, button, .adjustments, .delete-cell, th:last-child,
   .draft-actions, #copy-status, #storage-status, #manual-copy,
-  .field-error, .undo-notice, .archive, .backup,
+  .field-error, .undo-notice, .archive, .backup, .language-control,
   input, select, textarea { display: none !important; }
   .print-only, .print-value { display: block; }
   #print-title { font-size: 20pt; margin: 0 0 8mm; letter-spacing: 0; overflow-wrap: anywhere; }
@@ -124,3 +124,5 @@ textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid #c9d
   .total-card { align-items: flex-start; flex-direction: column; padding: 24px; }
   #total { text-align: left; max-width: 100%; }
 }
+
+.language-control { max-width: 280px; margin-bottom: 24px; }

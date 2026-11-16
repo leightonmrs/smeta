@@ -5,82 +5,84 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Смета за 5 минут</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js" defer></script>
   <script src="script.js" defer></script>
 </head>
 <body>
   <main class="container">
     <header class="page-header">
-      <h1>Смета за 5 минут</h1>
-      <p>Добавьте позиции и цены — смета посчитает всё сама.</p>
+      <h1 data-i18n="Смета за 5 минут">Смета за 5 минут</h1>
+      <p data-i18n="Добавьте позиции и цены — смета посчитает всё сама.">Добавьте позиции и цены — смета посчитает всё сама.</p>
     </header>
+    <label class="language-control"><span data-i18n="Язык сметы">Язык сметы</span><select id="language"><option value="kk">Қазақша</option><option value="ru" selected>Русский</option><option value="en">English</option></select></label>
     <h1 id="print-title" class="print-only"></h1>
 
     <section class="card" aria-labelledby="details-title">
-      <h2 id="details-title">Реквизиты</h2>
+      <h2 id="details-title" data-i18n="Реквизиты">Реквизиты</h2>
       <div class="details-grid">
-        <label>От кого<input type="text" name="sender" placeholder="Ваше имя или компания"></label>
-        <label>Для кого<input type="text" name="recipient" placeholder="Клиент или организация"></label>
-        <label>Номер сметы<input type="text" name="estimate-number" placeholder="Например, 001"></label>
-        <label>Дата<input type="date" name="date" id="estimate-date"></label>
+        <label><span data-i18n="От кого">От кого</span><input type="text" name="sender" placeholder="Ваше имя или компания" data-i18n-placeholder="Ваше имя или компания"></label>
+        <label><span data-i18n="Для кого">Для кого</span><input type="text" name="recipient" placeholder="Клиент или организация" data-i18n-placeholder="Клиент или организация"></label>
+        <label><span data-i18n="Номер сметы">Номер сметы</span><input type="text" name="estimate-number" placeholder="Например, 001" data-i18n-placeholder="Например, 001"></label>
+        <label><span data-i18n="Дата">Дата</span><input type="date" name="date" id="estimate-date"></label>
       </div>
     </section>
 
     <section class="card positions" aria-labelledby="positions-title">
-      <h2 id="positions-title">Позиции</h2>
+      <h2 id="positions-title" data-i18n="Позиции">Позиции</h2>
       <table>
-        <thead><tr><th scope="col">Наименование</th><th scope="col">Количество</th><th scope="col">Единица</th><th scope="col" id="price-heading">Цена, ₸</th><th scope="col">Сумма</th><th scope="col"><span class="sr-only">Удаление</span></th></tr></thead>
+        <thead><tr><th scope="col" data-i18n="Наименование">Наименование</th><th scope="col" data-i18n="Количество">Количество</th><th scope="col" data-i18n="Единица">Единица</th><th scope="col" id="price-heading">Цена, ₸</th><th scope="col" data-i18n="Сумма">Сумма</th><th scope="col"><span class="sr-only" data-i18n="Удаление">Удаление</span></th></tr></thead>
         <tbody id="items"></tbody>
       </table>
       <div id="undo-notice" class="undo-notice" hidden>
-        <span role="status">Позиция удалена</span>
-        <button type="button" id="undo-delete">Вернуть</button>
+        <span role="status" data-i18n="Позиция удалена">Позиция удалена</span>
+        <button type="button" id="undo-delete" data-i18n="Вернуть">Вернуть</button>
       </div>
-      <button type="button" id="add-item" class="add-button">+ Добавить позицию</button>
+      <button type="button" id="add-item" class="add-button" data-i18n="+ Добавить позицию">+ Добавить позицию</button>
       <div class="adjustments">
-        <label>Скидка, %<input id="discount" type="text" inputmode="decimal" value="0" autocomplete="off"></label>
-        <label>НДС, %<input id="vat" type="text" inputmode="decimal" value="0" autocomplete="off"></label>
-        <label>Валюта<select id="currency"><option value="₸">₸</option><option value="₽">₽</option><option value="$">$</option><option value="€">€</option></select></label>
+        <label><span data-i18n="Скидка, %">Скидка, %</span><input id="discount" type="text" inputmode="decimal" value="0" autocomplete="off"></label>
+        <label><span data-i18n="НДС, %">НДС, %</span><input id="vat" type="text" inputmode="decimal" value="0" autocomplete="off"></label>
+        <label><span data-i18n="Валюта">Валюта</span><select id="currency"><option value="₸">₸</option><option value="₽">₽</option><option value="$">$</option><option value="€">€</option></select></label>
       </div>
     </section>
 
     <div class="card breakdown" aria-live="polite" aria-atomic="true">
-      <div class="summary-row"><span>Сумма</span><output id="subtotal">0 ₸</output></div>
-      <div class="summary-row" id="discount-row" hidden><span>Скидка</span><output id="discount-amount">0 ₸</output></div>
-      <div class="summary-row" id="discounted-row" hidden><span>Сумма со скидкой</span><output id="discounted-amount">0 ₸</output></div>
-      <div class="summary-row" id="vat-row" hidden><span>НДС</span><output id="vat-amount">0 ₸</output></div>
+      <div class="summary-row"><span data-i18n="Сумма">Сумма</span><output id="subtotal">0 ₸</output></div>
+      <div class="summary-row" id="discount-row" hidden><span data-i18n="Скидка">Скидка</span><output id="discount-amount">0 ₸</output></div>
+      <div class="summary-row" id="discounted-row" hidden><span data-i18n="Сумма со скидкой">Сумма со скидкой</span><output id="discounted-amount">0 ₸</output></div>
+      <div class="summary-row" id="vat-row" hidden><span data-i18n="НДС">НДС</span><output id="vat-amount">0 ₸</output></div>
     </div>
     <section class="total-card" aria-labelledby="total-title">
-      <h2 id="total-title">Итого к оплате</h2>
+      <h2 id="total-title" data-i18n="Итого к оплате">Итого к оплате</h2>
       <output id="total" aria-live="polite" aria-atomic="true">0 ₸</output>
     </section>
     <section class="card comment-card" aria-labelledby="comment-title">
-      <h2 id="comment-title">Комментарий</h2>
-      <label for="comment" class="sr-only">Комментарий: сроки, условия оплаты</label>
-      <textarea id="comment" rows="4" placeholder="Сроки, условия оплаты"></textarea>
+      <h2 id="comment-title" data-i18n="Комментарий">Комментарий</h2>
+      <label for="comment" class="sr-only" data-i18n="Комментарий: сроки, условия оплаты">Комментарий: сроки, условия оплаты</label>
+      <textarea id="comment" rows="4" placeholder="Сроки, условия оплаты" data-i18n-placeholder="Сроки, условия оплаты"></textarea>
     </section>
-    <p class="print-only signature">Подпись ____________________</p>
-    <button type="button" id="save-pdf" class="pdf-button">Сохранить PDF</button>
+    <p class="print-only signature" data-i18n="Подпись ____________________">Подпись ____________________</p>
+    <button type="button" id="save-pdf" class="pdf-button" data-i18n="Сохранить PDF">Сохранить PDF</button>
     <div class="draft-actions">
-      <button type="button" id="copy-whatsapp" class="add-button">Скопировать для WhatsApp</button>
-      <button type="button" id="new-estimate" class="add-button">Новая смета</button>
-      <button type="button" id="save-archive" class="add-button">Сохранить в архив</button>
+      <button type="button" id="copy-whatsapp" class="add-button" data-i18n="Скопировать для WhatsApp">Скопировать для WhatsApp</button>
+      <button type="button" id="new-estimate" class="add-button" data-i18n="Новая смета">Новая смета</button>
+      <button type="button" id="save-archive" class="add-button" data-i18n="Сохранить в архив">Сохранить в архив</button>
     </div>
     <p id="copy-status" role="status" aria-live="polite"></p>
     <p id="storage-status" role="status"></p>
     <div id="manual-copy" hidden>
-      <label for="copy-text">Скопируйте текст вручную</label>
+      <label for="copy-text" data-i18n="Скопируйте текст вручную">Скопируйте текст вручную</label>
       <textarea id="copy-text" rows="10" readonly></textarea>
     </div>
     <section class="card archive" aria-labelledby="archive-title">
-      <h2 id="archive-title">Архив смет</h2>
+      <h2 id="archive-title" data-i18n="Архив смет">Архив смет</h2>
       <p id="archive-status" role="status"></p>
       <ul id="archive-list"></ul>
     </section>
     <section class="card backup" aria-labelledby="backup-title">
-      <h2 id="backup-title">Резервная копия</h2>
+      <h2 id="backup-title" data-i18n="Резервная копия">Резервная копия</h2>
       <div class="draft-actions">
-        <button type="button" id="download-backup" class="add-button">Скачать резервную копию</button>
-        <button type="button" id="upload-backup" class="add-button">Загрузить резервную копию</button>
+        <button type="button" id="download-backup" class="add-button" data-i18n="Скачать резервную копию">Скачать резервную копию</button>
+        <button type="button" id="upload-backup" class="add-button" data-i18n="Загрузить резервную копию">Загрузить резервную копию</button>
       </div>
       <input type="file" id="backup-file" accept=".json,application/json" hidden>
       <p id="backup-status" role="status" aria-live="polite"></p>
@@ -88,12 +90,12 @@
   </main>
   <template id="item-template">
     <tr>
-      <td data-label="Наименование"><input class="item-name" type="text" placeholder="Товар или услуга" aria-label="Наименование"><button type="button" class="duplicate-button">Дублировать</button></td>
-      <td data-label="Количество"><input class="quantity" type="text" inputmode="decimal" placeholder="0" aria-label="Количество" autocomplete="off"></td>
-      <td data-label="Единица"><select aria-label="Единица"><option>шт</option><option>час</option><option>услуга</option></select></td>
+      <td data-label="Наименование" data-i18n-data-label="Наименование"><input class="item-name" type="text" placeholder="Товар или услуга" data-i18n-placeholder="Товар или услуга" aria-label="Наименование" data-i18n-aria-label="Наименование"><button type="button" class="duplicate-button" data-i18n="Дублировать">Дублировать</button></td>
+      <td data-label="Количество" data-i18n-data-label="Количество"><input class="quantity" type="text" inputmode="decimal" placeholder="0" aria-label="Количество" data-i18n-aria-label="Количество" autocomplete="off"></td>
+      <td data-label="Единица" data-i18n-data-label="Единица"><select aria-label="Единица" data-i18n-aria-label="Единица"><option value="шт" data-i18n="шт">шт</option><option value="час" data-i18n="час">час</option><option value="услуга" data-i18n="услуга">услуга</option></select></td>
       <td data-label="Цена, ₸"><input class="price" type="text" inputmode="decimal" placeholder="0" aria-label="Цена в тенге" autocomplete="off"></td>
-      <td data-label="Сумма" class="amount-cell"><output class="line-total">0 ₸</output></td>
-      <td class="delete-cell"><button type="button" class="delete-button" aria-label="Удалить позицию">✕</button></td>
+      <td data-label="Сумма" data-i18n-data-label="Сумма" class="amount-cell"><output class="line-total">0 ₸</output></td>
+      <td class="delete-cell"><button type="button" class="delete-button" aria-label="Удалить позицию" data-i18n-aria-label="Удалить позицию">✕</button></td>
     </tr>
   </template>
 </body>
