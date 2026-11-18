@@ -35,8 +35,6 @@ td { padding: 12px 6px; border-top: 1px solid #e8eeeb; }
 .delete-cell { text-align: right; }
 .delete-button { width: 44px; padding: 0; background: #f3f6f5; color: #5d6c66; }
 .delete-button:hover { background: #e5ebe8; }
-.duplicate-button { margin-top: 8px; color: var(--accent); background: #eaf4ef; }
-.duplicate-button:hover { background: #dceee4; }
 .undo-notice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 16px; padding: 12px 16px; border-radius: 8px; background: #eaf4ef; }
 .undo-notice[hidden] { display: none; }
 #undo-delete { background: white; color: var(--accent); }
@@ -122,7 +120,6 @@ textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid #c9d
   .delete-cell { align-self: end; }
   .delete-cell::before { display: none; }
   .add-button { width: 100%; margin-top: 0; }
-  .duplicate-button { width: 100%; }
   .total-card { padding: 24px; }
   .total-row { align-items: flex-start; flex-direction: column; }
   #total { text-align: left; max-width: 100%; }

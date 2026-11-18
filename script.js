@@ -103,11 +103,6 @@ vatInput.addEventListener("input", recalculate);
 currency.addEventListener("change", recalculate);
 items.addEventListener("input", recalculate);
 items.addEventListener("click", (event) => {
-  const duplicateButton = event.target.closest(".duplicate-button");
-  if (duplicateButton) {
-    duplicateItem(duplicateButton.closest("tr"));
-    return;
-  }
   const button = event.target.closest(".delete-button");
   if (!button) return;
   const row = button.closest("tr");
@@ -152,20 +147,6 @@ document.querySelector("#undo-delete").addEventListener("click", () => {
   row.querySelector(".item-name").focus();
 });
 
-function duplicateItem(source) {
-  // Создаём чистую строку, чтобы не копировать идентификаторы подсказок и печатные значения.
-  const copy = template.content.firstElementChild.cloneNode(true);
-  const values = source.querySelectorAll("input, select");
-  copy.querySelectorAll("input, select").forEach((field, index) => {
-    field.value = values[index].value;
-  });
-  source.after(copy);
-  recalculate();
-  saveDraft();
-  const name = copy.querySelector(".item-name");
-  name.focus();
-  name.select();
-}
 items.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.isComposing && event.target.matches("input") && event.target.closest("tr") === items.lastElementChild) {
     event.preventDefault();
