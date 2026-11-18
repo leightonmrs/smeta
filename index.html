@@ -52,8 +52,11 @@
       <div class="summary-row" id="vat-row" hidden><span data-i18n="НДС">НДС</span><output id="vat-amount">0 ₸</output></div>
     </div>
     <section class="total-card" aria-labelledby="total-title">
-      <h2 id="total-title" data-i18n="Итого к оплате">Итого к оплате</h2>
-      <output id="total" aria-live="polite" aria-atomic="true">0 ₸</output>
+      <div class="total-row">
+        <h2 id="total-title" data-i18n="Итого к оплате">Итого к оплате</h2>
+        <output id="total" aria-live="polite" aria-atomic="true">0 ₸</output>
+      </div>
+      <p id="total-in-words" hidden></p>
     </section>
     <section class="card comment-card" aria-labelledby="comment-title">
       <h2 id="comment-title" data-i18n="Комментарий">Комментарий</h2>

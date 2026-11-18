@@ -136,6 +136,11 @@ const translations = {
     "kk": "Төленетін жалпы сома",
     "en": "Total due"
   },
+  "Сумма прописью": {
+    "ru": "Сумма прописью",
+    "kk": "Сома жазбаша",
+    "en": "Amount in words"
+  },
   "Комментарий": {
     "ru": "Комментарий",
     "kk": "Түсініктеме",
@@ -371,6 +376,69 @@ const translations = {
 function t(key) { return translations[key]?.[currentLanguage] || key; }
 function validLanguage(value) { return value === undefined || ["ru", "kk", "en"].includes(value); }
 function locale() { return {ru: "ru-RU", kk: "kk-KZ", en: "en-GB"}[currentLanguage]; }
+
+const russianPlural = new Intl.PluralRules("ru-RU");
+
+function russianAmountGroup(value, rank) {
+  const hundreds = ["", "сто", "двести", "триста", "четыреста", "пятьсот", "шестьсот", "семьсот", "восемьсот", "девятьсот"];
+  const tens = ["", "", "двадцать", "тридцать", "сорок", "пятьдесят", "шестьдесят", "семьдесят", "восемьдесят", "девяносто"];
+  const teens = ["десять", "одиннадцать", "двенадцать", "тринадцать", "четырнадцать", "пятнадцать", "шестнадцать", "семнадцать", "восемнадцать", "девятнадцать"];
+  const units = ["", "один", "два", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять"];
+  const rest = value % 100;
+  const digit = rest % 10;
+  const words = [hundreds[Math.floor(value / 100)], tens[Math.floor(rest / 10)]];
+  if (rest >= 10 && rest < 20) words.push(teens[digit]);
+  else if (rank === 1 && digit === 1) words.push("одна");
+  else if (rank === 1 && digit === 2) words.push("две");
+  else words.push(units[digit]);
+  if (rank) {
+    const forms = rank === 1
+      ? { one: "тысяча", few: "тысячи", many: "тысяч" }
+      : { one: "миллион", few: "миллиона", many: "миллионов" };
+    words.push(forms[russianPlural.select(value)]);
+  }
+  return words.filter(Boolean).join(" ");
+}
+
+function kazakhAmountGroup(value, rank) {
+  const units = ["", "бір", "екі", "үш", "төрт", "бес", "алты", "жеті", "сегіз", "тоғыз"];
+  const tens = ["", "он", "жиырма", "отыз", "қырық", "елу", "алпыс", "жетпіс", "сексен", "тоқсан"];
+  const hundreds = Math.floor(value / 100);
+  const words = [];
+  if (hundreds > 1) words.push(units[hundreds]);
+  if (hundreds) words.push("жүз");
+  words.push(tens[Math.floor(value % 100 / 10)], units[value % 10], ["", "мың", "миллион"][rank]);
+  return words.filter(Boolean).join(" ");
+}
+
+function englishAmountGroup(value, rank) {
+  const small = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+  const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+  const hundreds = Math.floor(value / 100);
+  const rest = value % 100;
+  const words = [];
+  if (hundreds) words.push(small[hundreds], "hundred");
+  if (hundreds && rest) words.push("and");
+  const remainder = rest < 20 ? small[rest] : [tens[Math.floor(rest / 10)], small[rest % 10]].filter(Boolean).join("-");
+  words.push(remainder, ["", "thousand", "million"][rank]);
+  return words.filter(Boolean).join(" ");
+}
+
+function tengeInWords(amount) {
+  if (!Number.isInteger(amount) || amount < 1 || amount > 999_999_999) return "";
+  const formatGroup = { ru: russianAmountGroup, kk: kazakhAmountGroup, en: englishAmountGroup }[currentLanguage];
+  const words = [];
+  for (let rank = 2; rank >= 0; rank--) {
+    const group = Math.floor(amount / (1000 ** rank)) % 1000;
+    if (!group) continue;
+    if (currentLanguage === "en" && rank === 0 && group < 100 && words.length) words.push("and");
+    words.push(formatGroup(group, rank));
+  }
+  words.push({ ru: "тенге", kk: "теңге", en: "tenge" }[currentLanguage]);
+  const text = words.join(" ");
+  return text[0].toLocaleUpperCase(locale()) + text.slice(1);
+}
+
 function localizedDate(value) {
   return value ? new Intl.DateTimeFormat(locale(), {day: "numeric", month: "long", year: "numeric", timeZone: "UTC"}).format(new Date(`${value}T00:00:00Z`)) : "—";
 }

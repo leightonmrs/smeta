@@ -3,6 +3,7 @@
 const items = document.querySelector("#items");
 const template = document.querySelector("#item-template");
 const total = document.querySelector("#total");
+const totalInWords = document.querySelector("#total-in-words");
 const discountInput = document.querySelector("#discount");
 const vatInput = document.querySelector("#vat");
 const currency = document.querySelector("#currency");
@@ -79,7 +80,11 @@ function recalculate() {
   showSummary("#discounted-amount", discounted, "#discounted-row");
   showSummary("#vat-amount", vat, "#vat-row");
   document.querySelector("#price-heading").textContent = `${t("Цена")}, ${currency.value}`;
-  total.textContent = formatMoney(roundedAmount(discounted + vat));
+  const amountDue = roundedAmount(discounted + vat);
+  total.textContent = formatMoney(amountDue);
+  const words = currency.value === "₸" ? tengeInWords(amountDue) : "";
+  totalInWords.textContent = words ? `${t("Сумма прописью")}: ${words}` : "";
+  totalInWords.hidden = !words;
   translateTree(items);
 }
 
@@ -289,6 +294,7 @@ function whatsappText() {
     if (!document.querySelector(row).hidden) lines.push(`${label}: ${document.querySelector(amount).textContent}`);
   }
   lines.push(`${t("Итого к оплате")}: ${total.textContent}`);
+  if (!totalInWords.hidden) lines.push(totalInWords.textContent);
   const comment = document.querySelector("#comment").value.trim();
   if (comment) lines.push("", comment);
   return lines.join("\n");
